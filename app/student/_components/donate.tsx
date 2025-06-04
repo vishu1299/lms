@@ -23,7 +23,7 @@ interface DonationDialogProps {
 const donationOptions = [
   { label: "Starter", value: 100},
   { label: "Popular", value: 500, highlight: true },
-  { label: "Impact", value: 1000 },
+  { label: "Impact", value: 1000},
   { label: "Champion", value: 5000 },
 ]
 
