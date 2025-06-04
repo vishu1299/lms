@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Otp {
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  type            OtpType
+  userId          String   @unique @db.VarChar(36)
+  oneTimePassword String
+  isVerified      Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+}
+
+enum OtpType {
+  REGISTRATION
+  FORGOT_PASSWORD
+}
+
+model User {
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  email           String   @unique
+  password        String
+  role            Role     @default(USER)
+  isEmailVerified Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  updatedAt       DateTime @updatedAt @db.Timestamptz
+  createdAt       DateTime @default(now()) @db.Timestamptz
+
+  // coursesTaught     Course[]         @relation("InstructorCourses")
+  EnrolledCourse   EnrolledCourse[]
+  Donation         Donation[]       @relation("DonationFromUser")
+  ReceivedDonation Donation[]       @relation("DonationToInstructor")
+  Meeting          Meeting[]
+  UserProfile      UserProfile?
+  UserDonation     UserDonation[]
+  Forum            Forum[]
+  Comment          Comment[]
+  ForumLike        ForumLike[]
+  ForumSave        ForumSave[]
+  Course           Course[]
+  ForumTag         ForumTag[]
+  Otp              Otp[]
+}
+
+model UserProfile {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  name      String
+  userId    String   @unique @db.VarChar(36)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+}
+
+model Course {
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  instructorId String
+  Instructor   User     @relation(fields: [instructorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  // userId        String?          @db.VarChar(36)
+  // User          User?            @relation(fields: [userId], references: [id])
+  title        String
+  description  String
+  image        String?
+  Language     String?
+  updatedAt    DateTime @updatedAt @db.Timestamptz
+  createdAt    DateTime @default(now()) @db.Timestamptz
+
+  videos        Video[]
+  quizzes       Quiz[]
+  enrolledUsers EnrolledCourse[]
+  Lesson        Lesson[]
+}
+
+model Lesson {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  courseId  String
+  Course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+  Video     Video[]
+}
+
+model Video {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  lessonId  String   @db.VarChar(36)
+  Lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  title     String
+  url       String
+  tags      String[]
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+  Course    Course?  @relation(fields: [courseId], references: [id])
+  courseId  String?  @db.VarChar(36)
+}
+
+model LibraryItem {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  title       String
+  fileUrl     String
+  accessLevel String // 'public', 'restricted'
+  type        String // 'book', 'audio', 'manuscript'
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+  createdAt   DateTime @default(now()) @db.Timestamptz
+}
+
+model EnrolledCourse {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  String   @db.VarChar(36)
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+}
+
+model Quiz {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  title     String
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  String   @db.VarChar(36)
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+}
+
+model Donation {
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  user         User     @relation("DonationFromUser", fields: [userId], references: [id])
+  userId       String
+  instructor   User     @relation("DonationToInstructor", fields: [instructorId], references: [id])
+  instructorId String
+  amount       Float
+  updatedAt    DateTime @updatedAt @db.Timestamptz
+  createdAt    DateTime @default(now()) @db.Timestamptz
+}
+
+model UserDonation {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  Donar      User?    @relation(fields: [donarId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  donarId    String?  @db.VarChar(36)
+  // Receiver   User     @relation(fields: [receiverId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  receiverId String   @db.VarChar(36)
+  updatedAt  DateTime @updatedAt @db.Timestamptz
+  createdAt  DateTime @default(now()) @db.Timestamptz
+}
+
+model Forum {
+  id          String      @id @default(uuid()) @db.VarChar(36)
+  authorId    String      @db.VarChar(36)
+  Author      User        @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  title       String      @unique
+  description String
+  image       String?
+  updatedAt   DateTime    @updatedAt @db.Timestamptz
+  createdAt   DateTime    @default(now()) @db.Timestamptz
+  Comment     Comment[]
+  ForumLike   ForumLike[]
+  ForumSave   ForumSave[]
+  ForumTags   ForumTag[]
+}
+
+model Tag {
+  id        String     @id @default(uuid()) @db.VarChar(36)
+  name      String
+  icon      String?
+  updatedAt DateTime   @updatedAt @db.Timestamptz
+  createdAt DateTime   @default(now()) @db.Timestamptz
+  ForumTags ForumTag[]
+}
+
+model ForumTag {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  tagId     String   @db.VarChar(36)
+  Tags      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  forumId   String   @db.VarChar(36)
+  Forum     Forum    @relation(fields: [forumId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+  User      User?    @relation(fields: [userId], references: [id])
+  userId    String?  @db.VarChar(36)
+}
+
+model ForumLike {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  userId    String   @db.VarChar(36)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  forumId   String   @db.VarChar(36)
+  Forum     Forum    @relation(fields: [forumId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+}
+
+model ForumSave {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  userId    String   @db.VarChar(36)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  forumId   String   @db.VarChar(36)
+  Forum     Forum    @relation(fields: [forumId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+}
+
+model Comment {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  userId    String   @db.VarChar(36)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  forumId   String   @db.VarChar(36)
+  Forum     Forum    @relation(fields: [forumId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  content   String
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+}
+
+model VIPRoom {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  name      String
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  meetings Meeting[]
+}
+
+model Meeting {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  title       String
+  scheduledAt DateTime
+  vipRoomId   String   @db.VarChar(36)
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  vipRoom     VIPRoom @relation(fields: [vipRoomId], references: [id])
+  organizerId String  @db.VarChar(36)
+  organizer   User    @relation(fields: [organizerId], references: [id])
+}
+
+enum Role {
+  USER
+  INSTRUCTOR
+  SUPER_ADMIN
+}
